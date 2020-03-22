@@ -7,13 +7,15 @@ devtools::install_github("shanquan0301/DataDescription")
 ```
 
 # Example
+```{r}
 data(mtcars)
 mtcars$judge <- TRUE
 mtcars$judge[3:7] <- FALSE
 mtcars$judge2 <- "TRUE"
 mtcars$judge2[3:7] <- "FALSE"
-
+```
 ## continuous varialbe was shown in mean(sd)
+```{r}
 res_tab <- data_des(data = mtcars,
          row_var = c("vs", "mpg", "wt", "gear", "judge", "judge2"),
          fun = c("mean", "sd"),
@@ -22,8 +24,10 @@ res_tab <- data_des(data = mtcars,
          round_cont = 3)
 
 res_tab
+```
 
 ## continuous varialbe was shown in median[25% quantile, 75% quantile]
+```{r}
 res_tab <- data_des(data = mtcars,
          row_var = c("vs", "mpg", "wt", "gear", "judge", "judge2"),
          fun = c("median", "quantile"),
@@ -31,8 +35,10 @@ res_tab <- data_des(data = mtcars,
          probs = c(0.25, 0.75))
 
 res_tab
+```
 
 ## continuous varialbe was shown in mean[25% quantile, 75% quantile]
+```{r}
 res_tab <- data_des(data = mtcars,
          row_var = c("vs", "mpg", "wt", "gear", "judge", "judge2"),
          col_var = "am",
@@ -43,3 +49,5 @@ res_tab <- data_des(data = mtcars,
          round_cont = 3)
 
 res_tab
+```
+
