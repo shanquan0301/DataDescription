@@ -54,8 +54,9 @@
 ##' res_tab
 ##'
 
-#' @import dplyr magrittr stringr
+#' @import dplyr stringr
 #' @importFrom stats sd quantile
+#' @importFrom magrittr %$%
 #' @importFrom tidyr spread
 
 #' @export data_des
