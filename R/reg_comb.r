@@ -21,8 +21,9 @@
 #' treatment <- gl(3,3)
 #' glm.D93 <- glm(counts ~ outcome + treatment, family = poisson())
 #' reg_comb(reg = glm.D93, exp_transfer = TRUE)
-#' 
+#'
 #' @import dplyr stringr tidyr
+#' @importFrom stats glm confint
 #' @export reg_comb
 
 
@@ -35,18 +36,18 @@ reg_comb <- function(reg = reg,
                      ci_low = "`2.5 %`",
                      ci_high = "`97.5 %`",
                      comb_ci = "coef(ci_low-ci_high)star, p_value"){
-  mdat_coef <- summary(reg)$coefficients %>% 
-    as.data.frame() %>% 
+  mdat_coef <- summary(reg)$coefficients %>%
+    as.data.frame() %>%
     round(round_ci)
   mdat_coef$variable <- rownames(mdat_coef)
-  
-  mdat_ci <- confint(reg) %>% 
-    as.data.frame() %>% 
-    round(round_ci) 
+
+  mdat_ci <- confint(reg) %>%
+    as.data.frame() %>%
+    round(round_ci)
   mdat_ci$variable <- rownames(mdat_ci)
-  
+
   mdat <- full_join(mdat_coef, mdat_ci, by = "variable")
-  
+
   mdat_express <- str_glue("mdat %>% mutate(
     coef = {coef},
     p_value = {p_value},
@@ -54,14 +55,14 @@ reg_comb <- function(reg = reg,
     ci_high = {ci_high}
   )")
   mdat <- eval(parse(text = mdat_express))
-  
+
   if(exp_transfer) {
     mdat <- mdat %>% mutate(
       coef = round(exp(coef), round_ci),
       ci_low = round(exp(ci_low), round_ci),
       ci_high = round(exp(ci_high), round_ci))
   }
-  
+
   mdat <- mdat %>% mutate(
     star = case_when(
       p_value <= 0.1 & p_value > 0.05 ~ ".",
@@ -72,24 +73,24 @@ reg_comb <- function(reg = reg,
     p_value = case_when(
       p_value == 0 ~ "p<0.0001",
       TRUE ~ as.character(format(p_value, scientific = FALSE))))
-  
+
   mdat <- mdat %>% mutate(
     coef = str_trim(as.character(format(coef, scientific = FALSE))),
     ci_low = str_trim(as.character(format(ci_low, scientific = FALSE))),
     ci_high = str_trim(as.character(format(ci_high, scientific = FALSE))),
   )
-  
+
   for (i in c("coef", "ci_low", "ci_high", "p_value", "star")){
     if(str_detect(comb_ci, i)){
-      comb_ci <- str_replace(comb_ci, 
-                             i, 
+      comb_ci <- str_replace(comb_ci,
+                             i,
                              str_c("{", i, "}"))
     }
   }
-  
-  mdat_express <- str_glue("mdat %>% rowwise() %>% 
+
+  mdat_express <- str_glue("mdat %>% rowwise() %>%
     mutate(comb_ci = str_glue('{comb_ci}'))")
   mdat <- eval(parse(text = mdat_express))
-  
+
   return(mdat)
 }
