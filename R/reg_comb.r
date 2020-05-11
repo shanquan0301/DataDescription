@@ -51,7 +51,7 @@ reg_comb <- function(reg = reg,
 
     mdat <- full_join(mdat_coef, mdat_ci, by = "variable")
   } else {
-    mdat <- data %>% round(round_ci)
+    mdat <- data %>% mutate_if(is.numeric, round, round_ci)
   }
 
 
