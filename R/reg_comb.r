@@ -3,6 +3,7 @@
 #' @description Structure the result of regression
 
 #' @param reg  the regression result, like the result of lm or glm
+#' @param data provide the data to process, only used when reg is missing
 #' @param round_p digital for p value
 #' @param round_ci digital for coefficient and ci
 #' @param exp_transfer if show the exp form.
@@ -28,6 +29,7 @@
 
 
 reg_comb <- function(reg = reg,
+                     data = data,
                      round_p = 4,
                      round_ci = 4,
                      exp_transfer = FALSE,
@@ -36,17 +38,25 @@ reg_comb <- function(reg = reg,
                      ci_low = "`2.5 %`",
                      ci_high = "`97.5 %`",
                      comb_ci = "coef(ci_low-ci_high)star, p_value"){
-  mdat_coef <- summary(reg)$coefficients %>%
-    as.data.frame() %>%
-    round(round_ci)
-  mdat_coef$variable <- rownames(mdat_coef)
+  if (!is.null(reg)){
+    mdat_coef <- summary(reg)$coefficients %>%
+      as.data.frame() %>%
+      round(round_ci)
+    mdat_coef$variable <- rownames(mdat_coef)
 
-  mdat_ci <- confint(reg) %>%
-    as.data.frame() %>%
-    round(round_ci)
-  mdat_ci$variable <- rownames(mdat_ci)
+    mdat_ci <- confint(reg) %>%
+      as.data.frame() %>%
+      round(round_ci)
+    mdat_ci$variable <- rownames(mdat_ci)
 
-  mdat <- full_join(mdat_coef, mdat_ci, by = "variable")
+    mdat <- full_join(mdat_coef, mdat_ci, by = "variable")
+  } else {
+    mdat <- data %>% round(round_ci)
+  }
+
+
+
+
 
   mdat_express <- str_glue("mdat %>% mutate(
     coef = {coef},
