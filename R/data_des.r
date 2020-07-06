@@ -71,6 +71,7 @@ data_des <- function(data,
                      round_cont = 2,
                      ...){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
+  data <- data %>% ungroup()
   if (is.null(col_var)){
     res_f <- data.frame(Variable = character(0), comb = character(0))
   } else {

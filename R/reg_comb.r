@@ -82,6 +82,7 @@ reg_comb <- function(reg = reg,
       TRUE ~ ""),
     p_value = case_when(
       p_value == 0 ~ "<0.0001",
+      p_value == 1 ~ "1.0000",
       TRUE ~ as.character(format(p_value, scientific = FALSE))))
 
   mdat <- mdat %>% mutate(
