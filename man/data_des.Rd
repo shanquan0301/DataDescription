@@ -4,9 +4,17 @@
 \alias{data_des}
 \title{Structure the Data as Table 1 Used in Publication.}
 \usage{
-data_des(data, row_var = c("vs", "mpg"), col_var = NULL,
-  col_perc = TRUE, fun = c("mean", "sd"), comb_sym = c("(", ")"),
-  round_cate = 1, round_cont = 2, ...)
+data_des(
+  data,
+  row_var = c("vs", "mpg"),
+  col_var = NULL,
+  col_perc = TRUE,
+  fun = c("mean", "sd"),
+  comb_sym = c("(", ")"),
+  round_cate = 1,
+  round_cont = 2,
+  ...
+)
 }
 \arguments{
 \item{data}{data table.}
