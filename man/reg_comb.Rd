@@ -4,10 +4,18 @@
 \alias{reg_comb}
 \title{Structure the result of regression}
 \usage{
-reg_comb(reg = reg, data = data, round_p = 4, round_ci = 4,
-  exp_transfer = FALSE, coef = "Estimate", p_value = "`Pr(>|z|)`",
-  ci_low = "`2.5 \%`", ci_high = "`97.5 \%`",
-  comb_ci = "coef(ci_low-ci_high)star, p_value")
+reg_comb(
+  reg = reg,
+  data = data,
+  round_p = 4,
+  round_ci = 4,
+  exp_transfer = FALSE,
+  coef = "Estimate",
+  p_value = "`Pr(>|z|)`",
+  ci_low = "`2.5 \%`",
+  ci_high = "`97.5 \%`",
+  comb_ci = "coef(ci_low-ci_high)star, p_value"
+)
 }
 \arguments{
 \item{reg}{the regression result, like the result of lm or glm}
