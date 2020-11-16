@@ -27,7 +27,6 @@
 #' @importFrom stats glm confint
 #' @export reg_comb
 
-
 reg_comb <- function(reg = reg,
                      data = data,
                      round_p = 4,
@@ -40,18 +39,17 @@ reg_comb <- function(reg = reg,
                      comb_ci = "coef(ci_low-ci_high)star, p_value"){
   if (!is.null(reg)){
     mdat_coef <- summary(reg)$coefficients %>%
-      as.data.frame() %>%
-      round(round_ci)
+      as.data.frame()
     mdat_coef$variable <- rownames(mdat_coef)
 
+
     mdat_ci <- confint(reg) %>%
-      as.data.frame() %>%
-      round(round_ci)
+      as.data.frame()
     mdat_ci$variable <- rownames(mdat_ci)
 
     mdat <- full_join(mdat_coef, mdat_ci, by = "variable")
   } else {
-    mdat <- data %>% mutate_if(is.numeric, round, round_ci)
+    mdat <- data
   }
 
 
@@ -65,6 +63,13 @@ reg_comb <- function(reg = reg,
     ci_high = {ci_high}
   )")
   mdat <- eval(parse(text = mdat_express))
+
+  mdat <- mdat %>% mutate(
+    coef = round(coef, round_ci),
+    ci_low = round(ci_low, round_ci),
+    ci_high = round(ci_high, round_ci),
+    p_value = round(p_value, round_p)
+  )
 
   if(exp_transfer) {
     mdat <- mdat %>% mutate(
