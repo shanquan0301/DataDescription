@@ -14,6 +14,7 @@
 ##' dat_all <- supp_join(dat_fs, dat_hl,full = FALSE, by = "unique_hh_ln")  #merge fs and hl
 
 #' @import dplyr stringr
+
 #' @export supp_join
 
 

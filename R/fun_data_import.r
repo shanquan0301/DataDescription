@@ -23,8 +23,8 @@
 #'
 #' dat_hl <- do.call("bind_rows", dat_hl)
 #'
-#'
 #' @import magrittr dplyr stringr tidyr haven glue crayon
+
 #' @export fun_data_import
 
 

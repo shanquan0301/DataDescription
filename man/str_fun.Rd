@@ -17,7 +17,6 @@ Detect the existence of multiple strings
 \examples{
 x <- c("counts", "outcome", "treatment")
 str_fun(x, str = c("cou", "ment"))
-
 }
 \author{
 Shanquan CHEN \email{shanquan0301@gmial.com}
