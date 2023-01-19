@@ -10,6 +10,9 @@ Encoding: UTF-8
 Imports:
        dplyr, 
        magrittr, 
+       crayon,
+       glue,
+       haven,
        tidyr, 
        stringr,
        stats,
