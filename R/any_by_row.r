@@ -18,7 +18,9 @@
 ##'   disability = judge_by_row(disability_0_4, disability_5_7_without_mental, disability_adult))
 #'
 #' @import dplyr tidyr
-#' @export any_by_row mean_by_row sum_by_row
+#' @export any_by_row
+#' @export mean_by_row
+#' @export sum_by_row
 
 
 any_by_row <- function(...){
