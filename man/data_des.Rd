@@ -10,7 +10,7 @@ data_des(
   col_var = NULL,
   col_perc = TRUE,
   fun = c("mean", "sd"),
-  comb_sym = c("(", ")"),
+  comb_sym = c(" (", ")"),
   round_cate = 1,
   round_cont = 2,
   ...
