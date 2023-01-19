@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1588933771126.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3972515745",
+    "id" : "C4615A50",
+    "lastKnownWriteTime" : 1588934309,
+    "last_content_update" : 1588934309852,
+    "path" : "C:/Users/shanquan/Dropbox/DataDescription/R/data_des.r",
+    "project_path" : "R/data_des.r",
+    "properties" : {
+        "cursorPosition" : "58,27",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

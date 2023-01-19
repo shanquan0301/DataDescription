@@ -1,0 +1,758 @@
+#figure_5_size---------------
+figure_5_size <- 13
+#com theme--------------
+theme_com <- function(){
+  theme_classic() + 
+    theme(plot.title = element_text(face="bold", size = 14),
+          axis.text = element_text(size = figure_5_size),
+          axis.title = element_text(size = figure_5_size),
+          legend.position = "top",
+          legend.text = element_markdown(size = figure_5_size),
+          legend.text.align = 0.5,
+          legend.title = element_blank(),
+          legend.direction = "horizontal")
+}
+#ci control---
+fun_ci_control <- function(inc, x, weight, data, type = "CIc"){
+  #browser()
+  # mdat <- dat_uk %>% filter(live_alone, age >= 60, !is.na(wealth_origin))
+  # inc <- as.numeric(mdat$wealth_origin)
+  # x <- mdat$help
+  # weight <- abs(mdat$weight)
+  
+  inc <- as.numeric(unlist(data[enexpr(inc)]))
+  x <- unlist(data[enexpr(x)])
+  weight <- abs(unlist(data[enexpr(weight)]))
+  #browser()
+  rank.inc <- rank(inc)
+  R.inc <- (rank.inc - 0.5) / length(rank.inc)
+  var.R <- var(R.inc, na.rm = TRUE)
+  ybar <- weighted.mean(x, w = weight, na.rm = TRUE)
+  #browser()
+  reg <-  lm((2 * var.R / ybar) * x ~ R.inc + age + wealth_origin,
+             weights = abs(weight), data = data)
+  
+  ci <- reg$coefficients[2]
+  ci_se <- summary(reg)$coefficients[2 , 2]
+  
+  ci_adjusted <- 4 * ci * ybar / 
+    (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+  
+  res <- c(ci_adjusted,
+           ci_adjusted - 1.96 * ci_se,
+           ci_adjusted + 1.96 * ci_se)
+  res <- data.frame(t(res))
+  
+  # res <- ci(x = inc, y = x, wt = weight, type = type)
+  # res <- c(res$concentration_index, 
+  #          res$concentration_index - 1.96 * sqrt(abs(res$variance)), 
+  #          res$concentration_index + 1.96 * sqrt(abs(res$variance)))
+  # res <- data.frame(t(res))
+  # 
+  names(res) <- c("ci", "low", "high")
+  
+  return(res)
+}
+#ci_diff-----
+#2020-----
+res_1 <- dat_uk %>% filter(live_alone, age >= 50, !is.na(wealth_origin)) %>% 
+  group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+res_1$country_nam <- "UK"
+
+res_2 <- dat_europe %>% filter(live_alone, age >= 50, !is.na(wealth_origin)) %>% 
+  group_by(country_nam) %>% 
+  group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+
+# for (i in unique(dat_europe$country_nam)){
+#   print(i)
+#   dat_europe %>% filter(live_alone, age >= 60, !is.na(wealth_origin), difficult_yes) %>% 
+#     filter(country_nam == i) %>% 
+#     group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+# }
+
+
+
+res_3 <- dat_usa %>% filter(live_alone, age >= 50, !is.na(wealth_origin)) %>% 
+  group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+res_3$country_nam <- "US"
+
+dat_plot <- bind_rows(res_1, res_2, res_3)
+dat_plot$year <- 2020
+
+dat_plot <- left_join(dat_plot, exp_of_gdp)
+dat_plot <- left_join(dat_plot, dat_nurse, by = "country_abb")
+
+mdat <- res_desc %>% filter(cat == "volunteer", year == 2020)
+names(mdat)[1] <- "volunteer"
+mdat$volunteer <- as.numeric(as.character(mdat$volunteer))
+mdat$country_nam[which(mdat$country_nam == "USA")] <- "US"
+dat_plot <- left_join(dat_plot, 
+                      mdat %>% select(country_nam, volunteer))
+mdat_2020 <- dat_plot
+
+#2018-----
+res_1 <- dat_uk_2018 %>% filter(live_alone, age >= 50, !is.na(wealth_origin)) %>% 
+  group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+res_1$country_nam <- "UK"
+
+res_2 <- dat_europe_2018 %>% filter(live_alone, age >= 50, !is.na(wealth_origin)) %>% 
+  group_by(country_nam) %>% 
+  group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+
+# for (i in unique(dat_europe$country_nam)){
+#   print(i)
+#   dat_europe %>% filter(live_alone, age >= 60, !is.na(wealth_origin), difficult_yes) %>% 
+#     filter(country_nam == i) %>% 
+#     group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+# }
+
+
+
+res_3 <- dat_usa_2018 %>% filter(live_alone, age >= 50, !is.na(wealth_origin)) %>% 
+  group_modify(~ fun_ci_control(., inc = difficult, x = help, weight = weight))
+res_3$country_nam <- "US"
+
+dat_plot <- bind_rows(res_1, res_2, res_3)
+dat_plot$year <- 2018
+
+dat_plot <- left_join(dat_plot, exp_of_gdp)
+dat_plot <- left_join(dat_plot, dat_nurse_2018, by = "country_abb")
+
+mdat <- res_desc %>% filter(cat == "volunteer", year == 2018)
+names(mdat)[1] <- "volunteer"
+mdat$volunteer <- as.numeric(as.character(mdat$volunteer))
+mdat$country_nam[which(mdat$country_nam == "USA")] <- "US"
+dat_plot <- left_join(dat_plot, 
+                      mdat %>% select(country_nam, volunteer))
+mdat_2018 <- dat_plot
+dat_plot <- bind_rows(mdat_2018, mdat_2020)
+dat_plot$year <- as.factor(dat_plot$year)
+
+
+dat_plot <- dat_plot %>% filter(country_nam != "Austria") %>% rowwise() %>% mutate(
+  exp_gdp = ifelse(year == 2020, exp_gdp, exp_gdp_2017),
+  ppp = ifelse(year == 2020, ppp, ppp_2017),
+) %>% ungroup()
+
+#dat_plot-------
+#dat_plot <- dat_plot %>% filter(!country_nam %in% c("UK", "US"))
+
+#plot_exp, plot on exp---------
+dat_plot <- dat_plot %>% mutate(rank_x = exp_gdp) %>% arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(adjust)
+mdat$jitter <- 0.05
+time_x_scale <- 6/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:29] <- c(-5, -5, 5, -5, -5, -5, -5, -5, 5, 5, 5, 5, 5, 5,
+                       5, -5, -5, 5, 5, 5, 5, 5, -5, 5, 
+                       5, 5, 5, 5, -5) * time_x_scale
+mdat$time_y[1:29] <- c(0, 0, 1, -1, -1, -0.8, 0.2, -3, -3, 2, -1, 2, 1.1, -2,
+                       -1, 0.1, 2, -1, 0, 0, 0, -0.1, 1, 0,
+                       1, -2, 1, -1, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+#p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+p_value <- sprintf("%.4f", round(summary(reg)$coefficients[2, 4], 4))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+
+plot_exp <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  # geom_segment(aes(x = rank_x, 
+  #                  y = ci*add_line,
+  #                  xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+  #                  yend = ci + jitter*time_y)) +
+  # geom_text(aes(x = rank_x + jitter*time_x,
+  #               y = ci + jitter*time_y,
+  #               label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  
+  scale_y_continuous(limits = c(-0.8, 0.8), expand = c(0, 0.05), 
+                     breaks = seq(-0.8, 0.8, by = 0.4),
+                     name = "Anti-difficulty               Pro-difficulty") + 
+  scale_x_continuous(limits = c(5, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Public expenditure on health (% of GDP)") + 
+  scale_color_manual(values = colour,
+                     labels = paste("<span style='color:",
+                                    colour,
+                                    "'>",
+                                    c(str_glue("Before COVID-19 pandemic: {str_cor_2018}"), 
+                                      str_glue("During COVID-19 pandemic: {str_cor_2020}")),
+                                    "</span>")
+  ) + 
+  labs(title = "C") + 
+  theme_com() + 
+  guides(colour = guide_legend(nrow=2))
+
+#plot_bed, plot on bed---------
+dat_plot <- dat_plot %>% 
+  mutate(rank_x = `Beds in residential long-term care facilities_Per 1 000 population aged 65 years old and over`) %>% 
+  arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(adjust)
+mdat$jitter <- 0.05
+time_x_scale <- 40/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:24] <- c(5, -5, 5, -5, 5, -5, -5, -5, 5, -5, -5, -5, 5, -5,
+                       -5, 5, 5, 5, -5, 5, 5, -5, -5, 5) * time_x_scale
+mdat$time_y[1:24] <- c(0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 1, 2, -1,
+                       -2, -1, -1, 1, 0, 0, 0, 0, 1, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("R^2 = {r_2}\ntau = {tau}\np = {p_value}")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("R^2 = {r_2}\ntau = {tau}\np = {p_value}")
+
+plot_bed <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  geom_segment(aes(x = rank_x, 
+                   y = ci*add_line,
+                   xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+                   yend = ci + jitter*time_y)) +
+  geom_text(aes(x = rank_x + jitter*time_x,
+                y = ci + jitter*time_y,
+                label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  scale_y_continuous(limits = c(-0.8, 0.8), expand = c(0, 0.05), 
+                     name = "Erreygers' corrected concentration index\nPro-non-difficult             Pro-difficult\nreporter                          reporter") + 
+  scale_x_continuous(limits = c(0, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Beds in residential long-term care facilities Per 1 000 population aged 65 years old and over") +
+  scale_color_manual(values = pal_lancet("lanonc")(9)[c(1, 7)],
+                     labels = c("Before COVID-19 pandemic", 
+                                "During COVID-19 pandemic")) + 
+  geom_text(data=data.frame(), 
+            aes(x = Inf, y = Inf), label = format(str_cor_2020, justify = "right"), hjust = 1.2, vjust = 4.5, colour = pal_lancet("lanonc")(9)[c(7)]) + 
+  geom_text(data=data.frame(), 
+            aes(x = Inf, y = Inf), label = format(str_cor_2018, justify = "right"), hjust = 1.2, vjust = 1.2, colour = pal_lancet("lanonc")(9)[c(1)]) + 
+  labs(title = "D") + 
+  theme_classic() + 
+  theme(plot.title = element_text(face="bold", size = 20),
+        legend.position = "top",
+        legend.title = element_blank(),
+        legend.direction = "horizontal")
+
+
+
+#plot_volunteer, plot on volunteer------
+dat_plot <- dat_plot %>% 
+  mutate(rank_x = volunteer*100) %>% 
+  arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(adjust)
+mdat$jitter <- 0.05
+time_x_scale <-20/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:29] <- c(-5, -5, -5, -5, -5, 5, -5, 5, -5, 5, 5, -5, 5, 5,
+                       5, 5, 5, -5, 5, -5, 5, -5, -5, 5, 
+                       5, 5, 5, -5, -5) * time_x_scale
+mdat$time_y[1:26] <- c(0, -2, -2, 1, 2, 2, -1, 3, -2, -3, 0, 0.1, 1, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, -2, -2, 
+                       -1, 1)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+#p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+p_value <- sprintf("%.4f", round(summary(reg)$coefficients[2, 4], 4))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+
+plot_volunteer <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  # geom_segment(aes(x = rank_x, 
+  #                  y = ci*add_line,
+  #                  xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+  #                  yend = ci + jitter*time_y)) +
+  # geom_text(aes(x = rank_x + jitter*time_x,
+  #               y = ci + jitter*time_y,
+  #               label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  scale_y_continuous(limits = c(-0.8, 0.8), expand = c(0, 0.05), 
+                     breaks = seq(-0.8, 0.8, by = 0.4),
+                     name = "Anti-difficulty               Pro-difficulty") + 
+  scale_x_continuous(limits = c(0, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Percentage of population volunteering to provide ADL support") +
+  scale_color_manual(values = colour,
+                     labels = paste("<span style='color:",
+                                    colour,
+                                    "'>",
+                                    c(str_glue("Before COVID-19 pandemic: {str_cor_2018}"), 
+                                      str_glue("During COVID-19 pandemic: {str_cor_2020}")),
+                                    "</span>")
+  ) + 
+  labs(title = "F") + 
+  theme_com() + 
+  guides(colour = guide_legend(nrow=2))
+#plot_work, Formal LTC workers (Head counts)_Per 100 population aged 65 years old and over---------
+dat_plot <- dat_plot %>% 
+  mutate(rank_x = `Formal LTC workers (Head counts)_Per 100 population aged 65 years old and over`) %>% 
+  arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(adjust)
+mdat$jitter <- 0.05
+time_x_scale <- 6/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:24] <- c(-5, 5, -5, -5, 5, -5, 5, -5, -5, 5, 5, -5, 5, 5,
+                       5, -5, -5, -5, -5, 5, -5, -5, 5, 5) * time_x_scale
+mdat$time_y[1:24] <- c(0, 0, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("R^2 = {r_2}\ntau = {tau}\np = {p_value}")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+#p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+p_value <- sprintf("%.4f", round(summary(reg)$coefficients[2, 4], 4))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("R^2 = {r_2}\ntau = {tau}\np = {p_value}")
+
+plot_work <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  geom_segment(aes(x = rank_x, 
+                   y = ci*add_line,
+                   xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+                   yend = ci + jitter*time_y)) +
+  geom_text(aes(x = rank_x + jitter*time_x,
+                y = ci + jitter*time_y,
+                label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  scale_y_continuous(limits = c(-0.8, 0.8), expand = c(0, 0.05), 
+                     name = "Erreygers' corrected concentration index") + 
+  scale_x_continuous(limits = c(0, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Formal LTC workers, Per 100 population aged 65 years old and over") +
+  scale_color_manual(values = pal_lancet("lanonc")(9)[c(1, 7)],
+                     labels = c("Before COVID-19 pandemic", 
+                                "During COVID-19 pandemic")) + 
+  geom_text(data=data.frame(), 
+            aes(x = Inf, y = Inf), label = format(str_cor_2020, justify = "right"), hjust = 1.2, vjust = 4.5, colour = pal_lancet("lanonc")(9)[c(7)]) + 
+  geom_text(data=data.frame(), 
+            aes(x = Inf, y = Inf), label = format(str_cor_2018, justify = "right"), hjust = 1.2, vjust = 1.2, colour = pal_lancet("lanonc")(9)[c(1)]) + 
+  labs(title = "E") + 
+  theme_classic() + 
+  theme(plot.title = element_text(face="bold", size = 20),
+        legend.position = "top",
+        legend.title = element_blank(),
+        legend.direction = "horizontal")
+#plot_work_personcare, Formal LTC workers (Head counts)_Personal carers per 100 population aged 65 years old and over---------
+dat_plot <- dat_plot %>% 
+  mutate(rank_x = `Formal LTC workers (Head counts)_Personal carers per 100 population aged 65 years old and over`) %>% 
+  arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(adjust)
+mdat$jitter <- 0.05
+time_x_scale <- 5/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:24] <- c(5, 5, -5, 5, -5, -5, -5, -5, 5, -5, 5, -5, 5, 5,
+                       5, -5, -5, -5, -5, 5, -5, -5, 5, 5) * time_x_scale
+mdat$time_y[1:24] <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+plot_work_personcare <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  # geom_segment(aes(x = rank_x, 
+  #                  y = ci*add_line,
+  #                  xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+  #                  yend = ci + jitter*time_y)) +
+  # geom_text(aes(x = rank_x + jitter*time_x,
+  #               y = ci + jitter*time_y,
+  #               label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  scale_y_continuous(limits = c(-0.8, 0.8), expand = c(0, 0.05), 
+                     breaks = seq(-0.8, 0.8, by = 0.4),
+                     name = "Anti-difficulty               Pro-difficulty") + 
+  scale_x_continuous(limits = c(0, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Formal LTC workers, Personal carers per 100 population aged 65 years old and over") +
+  scale_color_manual(values = colour,
+                     labels = paste("<span style='color:",
+                                    colour,
+                                    "'>",
+                                    c(str_glue("Before COVID-19 pandemic: {str_cor_2018}"), 
+                                      str_glue("During COVID-19 pandemic: {str_cor_2020}")),
+                                    "</span>")
+  ) + 
+  labs(title = "D") + 
+  theme_com() + 
+  guides(colour = guide_legend(nrow=2))
+#plot_work_nursecare, Formal LTC workers (Head counts)_Nurses per 100 population aged 65 years old and over---------
+dat_plot <- dat_plot %>% 
+  mutate(rank_x = `Formal LTC workers (Head counts)_Nurses per 100 population aged 65 years old and over`) %>% 
+  arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(adjust)
+mdat$jitter <- 0.05
+time_x_scale <- 2.8/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:24] <- c(-5, -5, -5, 5, -5, -5, -5, 5, 5, 5, -5, -5, 5, 5,
+                       5, -5, -5, -5, -5, 5, -5, -5, 5, 5) * time_x_scale
+# mdat$time_y[1:24] <- c(0, -1, 0, 1, -1, 1, 0, 0, -1, 1, 0, 0, 1, -1,
+#                        -1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+
+plot_work_nursecare <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  # geom_segment(aes(x = rank_x, 
+  #                  y = ci*add_line,
+  #                  xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+  #                  yend = ci + jitter*time_y)) +
+  # geom_text(aes(x = rank_x + jitter*time_x,
+  #               y = ci + jitter*time_y,
+  #               label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  scale_y_continuous(limits = c(-0.8, 0.8), expand = c(0, 0.05), 
+                     breaks = seq(-0.8, 0.8, by = 0.4),
+                     name = "Anti-difficulty               Pro-difficulty") + 
+  scale_x_continuous(limits = c(0, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Formal LTC workers, Nurses per 100 population aged 65 years old and over") +
+  scale_color_manual(values = colour,
+                     labels = paste("<span style='color:",
+                                    colour,
+                                    "'>",
+                                    c(str_glue("Before COVID-19 pandemic: {str_cor_2018}"), 
+                                      str_glue("During COVID-19 pandemic: {str_cor_2020}")),
+                                    "</span>")
+  ) + 
+  labs(title = "E") + 
+  theme_com() + 
+  guides(colour = guide_legend(nrow=2))
+
+
+
+
+##plot_aai, plot on aai---------
+dat_plot <- dat_plot %>% mutate(rank_x = aai) %>% arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(year == 2020)
+mdat$jitter <- 0.05
+time_x_scale <- 6/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:29] <- c(-5, -5, -5, -5, 5, -5, -5, -5, -5, 5, 5, -5, 5, 5,
+                       5, -5, -5, -5, -5, 5, -5, 5, 5, 5, 
+                       5, 5, 5, 5, -5) * time_x_scale
+mdat$time_y[1:24] <- c(0, -2, -1, 2, -2, 1, -0.1, 2, -1, 1, 1, -2, 1, -1,
+                       -1, 1, -2, 1, -2, 0, 2, 2, 0, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+#p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+p_value <- sprintf("%.4f", round(summary(reg)$coefficients[2, 4], 4))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+set.seed(1234)
+ran_num <- runif(29, min = 0.5, max = 3)
+mdat$rank_x[mdat$year == 2020] <- mdat$rank_x[mdat$year == 2020]  + ran_num
+ran_num_2 <- mdat %>% filter(!country_nam %in% c("UK", "US"), year == 2020) %>% select(country_nam, year, rank_x)
+#mdat$rank_x[mdat$year == 2020] <- ran_num_2$rank_x
+
+plot_aai <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  # geom_segment(aes(x = rank_x, 
+  #                  y = ci*add_line,
+  #                  xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+  #                  yend = ci + jitter*time_y)) +
+  # geom_text(aes(x = rank_x + jitter*time_x,
+  #               y = ci + jitter*time_y,
+  #               label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  
+  scale_y_continuous(expand = c(0, 0.05), limits = c(-0.8, 0.8),
+                     breaks = seq(-0.8, 0.8, by = 0.4),
+                     name = "Anti-difficulty               Pro-difficulty") + 
+  scale_x_continuous(limits = c(27, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Active ageing index") + 
+  scale_color_manual(values = colour,
+                     labels = paste("<span style='color:",
+                                    colour,
+                                    "'>",
+                                    c(str_glue("Before COVID-19 pandemic: {str_cor_2018}"), 
+                                      str_glue("During COVID-19 pandemic: {str_cor_2020}")),
+                                    "</span>")
+  ) + 
+  labs(title = "B") + 
+  theme_com() + 
+  guides(colour = guide_legend(nrow=2))
+
+#plot_ppp, plot on ppp---------
+dat_plot <- dat_plot %>% mutate(rank_x = ppp/1000) %>% arrange(rank_x)
+dat_plot <- dat_plot %>%  mutate(
+  country_nam = factor(country_nam, 
+                       levels = dat_plot$country_nam[dat_plot$year == 2020])
+)
+
+mdat <- dat_plot #%>% filter(year == 2020)
+mdat$jitter <- 0.05
+time_x_scale <- 6/5
+mdat$time_x <- 5 * time_x_scale
+mdat$time_y <- 0
+mdat$time_x[1:29] <- c(-5, -5, -5, -5, 5, -5, -5, -5, -5, 5, 5, -5, 5, 5,
+                       5, -5, -5, -5, -5, 5, -5, 5, 5, 5, 
+                       5, 5, 5, 5, -5) * time_x_scale
+mdat$time_y[1:24] <- c(0, -2, -1, 2, -2, 1, -0.1, 2, -1, 1, 1, -2, 1, -1,
+                       -1, 1, -2, 1, -2, 0, 2, 2, 0, 0)
+
+mdat <- mdat %>% mutate(
+  add_line = ifelse(time_y == 0, NA, TRUE)
+)
+
+res <- mdat %>% filter(year == 2020) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2020))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2020 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+res <- mdat %>% filter(year == 2018) %$% cor.test(ci, rank_x, method = "kendall")
+tau <- round(res$estimate, 4)
+p_value <- sprintf("%.4f", round(res$p.value, 4))
+reg <- lm(ci ~ rank_x, data = mdat %>% filter(year == 2018))
+r_2 <- sprintf("%.4f", round(summary(reg)$r.squared, 4))
+str_cor_2018 <- str_glue("tau = {tau}, p value = {p_value}, R suqare = {r_2}\n")
+
+
+plot_ppp <- ggplot(data = mdat, aes(x = rank_x, y = ci)) + 
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") + 
+  # geom_segment(aes(x = rank_x, 
+  #                  y = ci*add_line,
+  #                  xend = rank_x + jitter*time_x/1.2 - 0.05*time_x/5,
+  #                  yend = ci + jitter*time_y)) +
+  # geom_text(aes(x = rank_x + jitter*time_x,
+  #               y = ci + jitter*time_y,
+  #               label = country_abb), colour = "black", size = 3) + 
+  
+  geom_errorbar(aes(ymin = low, ymax = high, colour = year), width = 0.0) + 
+  #geom_point(colour = pal_lancet("lanonc")(9)[7]) + 
+  geom_point(aes(colour = year)) + 
+  # geom_smooth(method = "lm", se = FALSE, colour = pal_lancet("lanonc")(9)[1], 
+  #             linetype = 2, size = 0.7) + 
+  geom_smooth(aes(colour = year), method = "lm", se = FALSE, 
+              linetype = 2, size = 0.7) + 
+  
+  scale_y_continuous(expand = c(0, 0.05), limits = c(-0.8, 0.8), 
+                     breaks = seq(-0.8, 0.8, by = 0.4),
+                     name = "Anti-difficulty               Pro-difficulty") + 
+  scale_x_continuous(limits = c(7, ceiling(max(mdat$rank_x, na.rm = TRUE))), expand = c(0, 0.1),
+                     name = "Gross national income per capita (1000 US dollars)") + 
+  scale_color_manual(values = colour,
+                     labels = paste("<span style='color:",
+                                    colour,
+                                    "'>",
+                                    c(str_glue("Before COVID-19 pandemic: {str_cor_2018}"), 
+                                      str_glue("During COVID-19 pandemic: {str_cor_2020}")),
+                                    "</span>")
+  ) + 
+  labs(title = "A") + 
+  theme_com() + 
+  guides(colour = guide_legend(nrow=2))
+
+
+#COMBINE----
+grid.arrange(plot_ppp, plot_aai,
+             plot_exp, plot_work_personcare, 
+             plot_work_nursecare, plot_volunteer)
+
+#13.14, 15
+#test-----
+var_str <- c("ppp/1000", "aai", "exp_gdp", 
+             "`Formal LTC workers (Head counts)_Personal carers per 100 population aged 65 years old and over`", 
+             "`Formal LTC workers (Head counts)_Nurses per 100 population aged 65 years old and over`", 
+             "volunteer*100")
+for(i in var_str ){
+  eval(parse(text = str_glue("dat_plot$x_var <- dat_plot${i}")))
+  reg <-  lm(ci ~ x_var + 
+               year*x_var, data = dat_plot)
+  res <- summary(reg)
+  res <- cbind(res$coefficients, confint(reg))[4, ]
+  if (i ==  var_str[1]) {res_f <- res}
+  if (i !=  var_str[1]) {res_f <- rbind(res_f, res)}
+}
+res_f <- as.data.frame(res_f)
+res_f$figure <-  letters[1:6]
+res_f <- reg_comb(reg = NULL,
+                  data = res_f,
+                  round_ci = 3,
+                  round_p = 4,
+                  p_value = "`Pr(>|t|)`",
+                  comb_ci = "coef(ci_low, ci_high)")
+write.csv(res_f, "res_f.csv")

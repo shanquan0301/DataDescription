@@ -1,0 +1,17 @@
+Package: DataDescription
+Type: Package
+Title: Structure the Data as Table 1 Used in Publication
+Version: 0.1.1
+Author: Shanquan CHEN
+Maintainer: Shanquan CHEN <shanquan0301@gmail.com>
+Description: Category date will be presented as N(percentage). Continuous data will be presented in a customized form.
+License: GPL
+Encoding: UTF-8
+Imports:
+       dplyr, 
+       magrittr, 
+       tidyr, 
+       stringr,
+       stats,
+       MASS
+RoxygenNote: 7.2.0
