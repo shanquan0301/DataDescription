@@ -1,7 +1,7 @@
 Package: DataDescription
 Type: Package
 Title: Structure the Data as Table 1 Used in Publication
-Version: 0.1.1
+Version: 0.1.2
 Author: Shanquan CHEN
 Maintainer: Shanquan CHEN <shanquan0301@gmail.com>
 Description: Category date will be presented as N(percentage). Continuous data will be presented in a customized form.
@@ -16,5 +16,6 @@ Imports:
        tidyr, 
        stringr,
        stats,
+       gridExtra,
        MASS
 RoxygenNote: 7.2.0
