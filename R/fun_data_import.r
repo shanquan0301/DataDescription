@@ -52,7 +52,12 @@ fun_data_import <- function(country = "Pakistan",
     next
   }
   #read the available variable name
-  dat_names <- lapply(final_path, read_sav, n_max = 0)
+  if(country %in% "Mongolia"){
+    dat_names <- lapply(final_path, read_sav, n_max = 0, encoding="latin1")
+  } else {
+    dat_names <- lapply(final_path, read_sav, n_max = 0)
+  }
+
   dat_names <- do.call("bind_rows", dat_names)
   #not all country have the needed variables
   #judge if LN exists, or else only read HH1 and HH2
@@ -81,11 +86,16 @@ fun_data_import <- function(country = "Pakistan",
   col_select <- unique(col_select)
 
   #read the data
-  if (length(final_path) == 1) {mdat <- read_sav(final_path, col_select = all_of(col_select))}
+  if (length(final_path) == 1) {
+    if(country %in% "Mongolia") {mdat <- read_sav(final_path, col_select = all_of(col_select), encoding="latin1")}
+    if(!country %in% "Mongolia") {mdat <- read_sav(final_path, col_select = all_of(col_select))}
+    }
 
   if (length(final_path) > 1) {
     for (i in 1:length(final_path)){
-      dat_names <- read_sav(final_path[i], n_max = 0)
+      if(country %in% "Mongolia"){dat_names <- read_sav(final_path[i], n_max = 0, encoding="latin1")}
+      if(!country %in% "Mongolia"){dat_names <- read_sav(final_path[i], n_max = 0)}
+
       res <- col_select[!col_select %in% names(dat_names)]
       if(length(res) > 0){
         cat(str_c(str_c(rep("-", times = level + 1), collapse = ""),
@@ -93,8 +103,11 @@ fun_data_import <- function(country = "Pakistan",
       }
       country_sub <- str_replace(final_path[i],  path_spss, "")
       country_sub <- str_split(country_sub, "/")[[1]][1]
-      mdat_m <- read_sav(final_path[i],
-                         col_select = all_of(col_select[col_select %in% names(dat_names)]))
+      if(country %in% "Mongolia"){mdat_m <- read_sav(final_path[i],
+                              col_select = all_of(col_select[col_select %in% names(dat_names)]), encoding="latin1")}
+      if(!country %in% "Mongolia"){mdat_m <- read_sav(final_path[i],
+                              col_select = all_of(col_select[col_select %in% names(dat_names)]))}
+
       mdat_m$country_sub <- country_sub
       if (i == 1) {mdat <- mdat_m}
       if (i != 1) {mdat <- bind_rows(mdat, mdat_m)}
