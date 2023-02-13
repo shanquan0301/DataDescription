@@ -22,6 +22,7 @@
 #' @export any_by_row
 #' @export mean_by_row
 #' @export sum_by_row
+#' @export all_by_row
 
 
 any_by_row <- function(...){
@@ -30,6 +31,15 @@ any_by_row <- function(...){
   if(length(dots) == na_num){return(NA)}
   if(length(dots) != na_num){
     return(any(dots, na.rm = TRUE))
+  }
+}
+
+all_by_row <- function(...){
+  dots <- unlist(list(...))
+  na_num <- sum(is.na(dots))
+  if(length(dots) == na_num){return(NA)}
+  if(length(dots) != na_num){
+    return(all(dots, na.rm = TRUE))
   }
 }
 

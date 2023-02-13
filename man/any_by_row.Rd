@@ -5,6 +5,7 @@
 \title{Process by row or group}
 \usage{
 any_by_row(...)
+all_by_row(...)
 mean_by_row(...)
 sum_by_row(...)
 }
