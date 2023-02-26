@@ -69,12 +69,22 @@ data_des <- function(data,
                      comb_sym = c(" (", ")"),
                      round_cate = 1,
                      round_cont = 2,
+                     p_value = TRUE,
                      ...){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   if (is.null(col_var)){
     res_f <- data.frame(Variable = character(0), comb = character(0))
   } else {
-    res_f <- data.frame(Variable = character(0), col_var = character(0), comb = character(0))
+    if(p_value == TRUE){res_f <- data.frame(Variable = character(0),
+                                            col_var = character(0),
+                                            comb = character(0),
+                                            test_name = character(0),
+                                            test_value = numeric(0),
+                                            p_value = numeric(0))}
+    if(p_value != TRUE){res_f <- data.frame(Variable = character(0),
+                                            col_var = character(0),
+                                            comb = character(0))}
+
   }
 
   for (var in row_var){
@@ -82,17 +92,19 @@ data_des <- function(data,
     var <- as.name(var)
     m_len <- data %$% length(unique(eval(var)))
     m_class <- data %$% class(eval(var))
-    if(m_len == 2 | m_class %in% c("character", "logical", "factor")){
+    if(m_len == 2 | m_class[1] %in% c("character", "logical", "factor", "ordered")){
       res <- cate_des(data = data,
                       row_var = as.character(var),
                       col_var = col_var,
                       col_perc = col_perc,
+                      p_value = p_value,
                       round_cate = round_cate)
     } else {
       res <- cont_des(data = data,
                       row_var = as.character(var),
                       col_var = col_var,
                       fun = fun,
+                      p_value = p_value,
                       comb_sym = comb_sym,
                       round_cont = round_cont,
                       ...)
@@ -100,13 +112,13 @@ data_des <- function(data,
     if(is.null(col_var)){
       res <- res %>% select(Variable, comb)
     } else {
-      res <- res %>% select(Variable, as.character(col_var), comb)
+      if(p_value == TRUE){res <- res %>% select(Variable, as.character(col_var), comb, test_name, test_value, p_value)}
+      if(p_value != TRUE){res <- res %>% select(Variable, as.character(col_var), comb)}
       names(res)[2] <- "col_var"
     }
 
     res_f <- rbind(res_f, res)
   }
-
   if(is.null(col_var)){
     return(res_f)
   } else {
@@ -116,6 +128,12 @@ data_des <- function(data,
     res_f <- res_f[match(u_Variable, res_f$Variable), ]
     names(res_f)[which(names(res_f) == "<NA>")] <- "All"
     names(res_f)[-1] <- str_c(as.character(col_var), " (= ", names(res_f)[-1], ")")
+    names(res_f)[str_detect(names(res_f), "test_value")] <- "test_value"
+    names(res_f)[str_detect(names(res_f), "test_name")] <- "test_name"
+    names(res_f)[str_detect(names(res_f), "p_value")] <- "p_value"
+    if("p_value" %in% names(res_f)){
+      res_f <- res_f %>% select(Variable, starts_with(as.character(col_var)), test_name, test_value, p_value)
+    }
     return(res_f)
   }
 
@@ -125,12 +143,17 @@ data_des <- function(data,
 
 #function for category variable------
 cate_des <- function(data,
-                     row_var = "vs",
-                     col_var = NULL,
+                     row_var = "gear",
+                     col_var = "vs",
                      col_perc = TRUE,
-                     round_cate = 1){
+                     round_cate = 1,
+                     p_value = TRUE,
+                     test_name = "chisq.test"){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   row_var <- as.name(row_var)
+  m_class <- data %$% class(eval(row_var))
+  if("ordered" %in% m_class) {test_name <- "prop.trend.test"}
+
   #if col_var == NULL, it means no column
   if(is.null(col_var)){
     res_2 <- data %>%
@@ -174,6 +197,25 @@ cate_des <- function(data,
     mutate(comb = str_c(n, " (", `Percentage(%)`, ")"),
            Variable = str_c(as.character(row_var), " (= ", !!row_var, ")")
     )
+
+  #add p_value
+  if(!is.null(col_var) & p_value == TRUE){
+    m_tab <- eval(parse(text =str_glue("data %$% table(as.character({row_var}), as.character({col_var}))")))
+    events <- m_tab[, 1]
+    trials <- rowSums(m_tab)
+    if (test_name == "chisq.test"){
+      mdat_test <- eval(parse(text = str_glue("{test_name}(m_tab)")))
+    }
+
+    if (test_name == "prop.trend.test"){
+      mdat_test <- prop.trend.test(events, trials)
+    }
+
+    res$test_name <- test_name
+    res$test_value <- mdat_test$statistic
+    res$p_value <- mdat_test$p.value
+  }
+
   names(res)[1] <- "cate"
   return(res)
 }
@@ -181,10 +223,12 @@ cate_des <- function(data,
 #function for continuous variable-------
 cont_des <- function(data,
                      row_var = "mpg",
-                     col_var = NULL,
+                     col_var = "vs",
                      fun = c("mean", "sd"),
                      comb_sym = c(" (", ")"),
                      round_cont = 2,
+                     p_value = TRUE,
+                     test_name = "t.test",
                      ...){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   row_var <- as.name(row_var)
@@ -241,6 +285,17 @@ cont_des <- function(data,
                           sd,
                           comb_sym[2]))
   }
+
+
+  #add p_value
+  if(!is.null(col_var) & p_value == TRUE){
+    mdat_test <- eval(parse(text = str_glue("{test_name}({row_var} ~ {col_var}, data = data)")))
+
+    res$test_name <- test_name
+    res$test_value <- mdat_test$statistic
+    res$p_value <- mdat_test$p.value
+  }
+
   n_loc <- which(names(res) == "mean")
   names(res)[n_loc:(n_loc + 1)] <- fun
   return(res)
