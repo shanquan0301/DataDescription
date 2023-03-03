@@ -10,6 +10,7 @@
 #' @param comb_sym  It determines how the continuous variable will be presented.
 #' @param round_cate  Decimal of category variable. Default is 1.
 #' @param round_cont  Decimal of continuous variable. Default is 2.
+#' @param p_value If calculate the p value
 #' @param ... Arguments given to \code{"fun"}
 
 #' @author Shanquan CHEN \email{shanquan0301@gmial.com}
@@ -232,6 +233,10 @@ cont_des <- function(data,
                      ...){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   row_var <- as.name(row_var)
+  n_col <- eval(parse(text = str_glue("length(na.omit(unique(data${col_var}))")))
+  if(n_col > 2) {test_name <- "aov"}
+
+
   if(is.null(col_var)){
     res_2 <- data %>%
       summarise(mean = do.call(fun[1], args = list(!!row_var, na.rm = TRUE)),
@@ -290,10 +295,20 @@ cont_des <- function(data,
   #add p_value
   if(!is.null(col_var) & p_value == TRUE){
     mdat_test <- eval(parse(text = str_glue("{test_name}({row_var} ~ {col_var}, data = data)")))
+    if(test_name == "aov") {
+      res$test_name <- test_name
+      mdat_test <- unlist(summary(mdat_test))
+      res$test_value <- mdat_test["F value1"]
+      res$p_value <- mdat_test["Pr(>F)1"]
 
-    res$test_name <- test_name
-    res$test_value <- mdat_test$statistic
-    res$p_value <- mdat_test$p.value
+    }
+
+    if(test_name != "aov") {
+      res$test_name <- test_name
+      res$test_value <- mdat_test$statistic
+      res$p_value <- mdat_test$p.value
+    }
+
   }
 
   n_loc <- which(names(res) == "mean")
