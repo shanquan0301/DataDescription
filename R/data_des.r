@@ -233,7 +233,7 @@ cont_des <- function(data,
                      ...){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   row_var <- as.name(row_var)
-  n_col <- eval(parse(text = str_glue("length(na.omit(unique(data${col_var}))")))
+  n_col <- eval(parse(text = str_glue("length(na.omit(unique(data${col_var})))")))
   if(n_col > 2) {test_name <- "aov"}
 
 
