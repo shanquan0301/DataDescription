@@ -36,12 +36,16 @@ any_by_row <- function(...){
   }
 }
 
-all_by_row <- function(...){
+all_by_row <- function(na.rm = FALSE, ...){
   dots <- unlist(list(...))
   na_num <- sum(is.na(dots))
-  if(length(dots) == na_num){return(NA)}
-  if(length(dots) != na_num){
-    return(all(dots, na.rm = TRUE))
+  if(na.rm == TRUE){
+    if(length(dots) == na_num){return(NA)}
+    if(length(dots) != na_num){return(all(dots, na.rm = na.rm))}
+  }
+  if(na.rm == FALSE){
+    if(na_num > 0){return(NA)}
+    if(na_num == 0){return(all(dots))}
   }
 }
 

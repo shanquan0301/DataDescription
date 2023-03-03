@@ -13,6 +13,7 @@ data_des(
   comb_sym = c(" (", ")"),
   round_cate = 1,
   round_cont = 2,
+  p_value = TRUE,
   ...
 )
 }
@@ -32,6 +33,8 @@ data_des(
 \item{round_cate}{Decimal of category variable. Default is 1.}
 
 \item{round_cont}{Decimal of continuous variable. Default is 2.}
+
+\item{p_value}{If calculate the p value}
 
 \item{...}{Arguments given to \code{"fun"}}
 }
