@@ -20,9 +20,11 @@
 #' @import dplyr tidyr
 
 #' @export any_by_row
+#' @export all_by_row
+#'
 #' @export mean_by_row
 #' @export sum_by_row
-#' @export all_by_row
+
 
 
 any_by_row <- function(...){
