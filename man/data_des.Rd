@@ -14,6 +14,8 @@ data_des(
   round_cate = 1,
   round_cont = 2,
   p_value = TRUE,
+  test_name_cont = "t.test",
+  test_name_cate = "chisq.test",
   ...
 )
 }
@@ -35,6 +37,10 @@ data_des(
 \item{round_cont}{Decimal of continuous variable. Default is 2.}
 
 \item{p_value}{If calculate the p value}
+
+\item{test_name_cont}{test on continuous variable}
+
+\item{test_name_cate}{test on category variable}
 
 \item{...}{Arguments given to \code{"fun"}}
 }

@@ -11,6 +11,8 @@
 #' @param round_cate  Decimal of category variable. Default is 1.
 #' @param round_cont  Decimal of continuous variable. Default is 2.
 #' @param p_value If calculate the p value
+#' @param test_name_cont test on continuous variable
+#' @param test_name_cate test on category variable
 #' @param ... Arguments given to \code{"fun"}
 
 #' @author Shanquan CHEN \email{shanquan0301@gmial.com}
@@ -55,7 +57,7 @@
 ##' res_tab
 ##'
 
-#' @import dplyr stringr
+#' @import dplyr stringr smd
 #' @importFrom stats sd quantile
 #' @importFrom magrittr %$%
 #' @importFrom tidyr spread
@@ -71,6 +73,8 @@ data_des <- function(data,
                      round_cate = 1,
                      round_cont = 2,
                      p_value = TRUE,
+                     test_name_cont = "t.test",
+                     test_name_cate = "chisq.test",
                      ...){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   if (is.null(col_var)){
@@ -99,7 +103,8 @@ data_des <- function(data,
                       col_var = col_var,
                       col_perc = col_perc,
                       p_value = p_value,
-                      round_cate = round_cate)
+                      round_cate = round_cate,
+                      test_name = test_name_cate)
     } else {
       res <- cont_des(data = data,
                       row_var = as.character(var),
@@ -108,6 +113,7 @@ data_des <- function(data,
                       p_value = p_value,
                       comb_sym = comb_sym,
                       round_cont = round_cont,
+                      test_name = test_name_cont,
                       ...)
     }
     if(is.null(col_var)){
@@ -204,6 +210,11 @@ cate_des <- function(data,
     m_tab <- eval(parse(text =str_glue("data %$% table(as.character({row_var}), as.character({col_var}))")))
     events <- m_tab[, 1]
     trials <- rowSums(m_tab)
+
+    if(test_name %in% c("smd")){
+      mdat_test <- eval(parst(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE")))
+    }
+
     if (test_name == "chisq.test"){
       mdat_test <- eval(parse(text = str_glue("{test_name}(m_tab)")))
     }
@@ -212,9 +223,21 @@ cate_des <- function(data,
       mdat_test <- prop.trend.test(events, trials)
     }
 
-    res$test_name <- test_name
-    res$test_value <- mdat_test$statistic
-    res$p_value <- mdat_test$p.value
+    if(test_name == "smd") {
+      res$test_name <- test_name
+      #mdat_test <- unlist(summary(mdat_test))
+      res$test_value <- mdat_test$estimate
+      res$p_value <- mdat_test$std.error
+
+    }
+
+
+    if(test_name %in% c("chisq.test", "prop.trend.test")){
+      res$test_name <- test_name
+      res$test_value <- mdat_test$statistic
+      res$p_value <- mdat_test$p.value
+    }
+
   }
 
   names(res)[1] <- "cate"
@@ -231,7 +254,7 @@ cont_des <- function(data,
                      p_value = TRUE,
                      test_name = "t.test",
                      ...){
-  class(data) <- class(data)[which(class(data) != "rowwise_df")]
+  class(data) <- class(data)[which(!class(data) %in% c("rowwise_df", "grouped_df"))]
   row_var <- as.name(row_var)
   n_col <- eval(parse(text = str_glue("length(na.omit(unique(data${col_var})))")))
   if(n_col > 2) {test_name <- "aov"}
@@ -294,7 +317,15 @@ cont_des <- function(data,
 
   #add p_value
   if(!is.null(col_var) & p_value == TRUE){
-    mdat_test <- eval(parse(text = str_glue("{test_name}({row_var} ~ {col_var}, data = data)")))
+
+    if(test_name %in% c("t.test", "aov", "wilcox.test")){
+      mdat_test <- eval(parse(text = str_glue("{test_name}({row_var} ~ {col_var}, data = data)")))
+    }
+
+    if(test_name %in% "smd"){
+      mdat_test <- eval(parst(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE")))
+    }
+
     if(test_name == "aov") {
       res$test_name <- test_name
       mdat_test <- unlist(summary(mdat_test))
@@ -303,7 +334,16 @@ cont_des <- function(data,
 
     }
 
-    if(test_name != "aov") {
+    if(test_name == "smd") {
+      res$test_name <- test_name
+      #mdat_test <- unlist(summary(mdat_test))
+      res$test_value <- mdat_test$estimate
+      res$p_value <- mdat_test$std.error
+
+    }
+
+
+    if(!(test_name %in% c("aov", "smd"))) {
       res$test_name <- test_name
       res$test_value <- mdat_test$statistic
       res$p_value <- mdat_test$p.value
