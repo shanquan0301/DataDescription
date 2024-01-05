@@ -212,7 +212,7 @@ cate_des <- function(data,
     trials <- rowSums(m_tab)
 
     if(test_name %in% c("smd")){
-      mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE")))
+      mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE)")))
     }
 
     if (test_name == "chisq.test"){
@@ -323,7 +323,7 @@ cont_des <- function(data,
     }
 
     if(test_name %in% "smd"){
-      mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE")))
+      mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE)")))
     }
 
     if(test_name == "aov") {
