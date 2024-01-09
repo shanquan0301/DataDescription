@@ -201,7 +201,7 @@ cate_des <- function(data,
   }
   #combine the row
   res <- res %>% rowwise() %>%
-    mutate(comb = str_c(n, " (", `Percentage(%)`, ")"),
+    mutate(comb = str_c(n, " (", `Percentage(%)`, "%)"),
            Variable = str_c(as.character(row_var), " (= ", !!row_var, ")")
     )
 
