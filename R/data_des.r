@@ -155,6 +155,7 @@ cate_des <- function(data,
                      col_perc = TRUE,
                      round_cate = 1,
                      p_value = TRUE,
+                     weight = NUll,
                      test_name = "chisq.test"){
   class(data) <- class(data)[which(class(data) != "rowwise_df")]
   row_var <- as.name(row_var)
@@ -212,7 +213,14 @@ cate_des <- function(data,
     trials <- rowSums(m_tab)
 
     if(test_name %in% c("smd")){
-      mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE)")))
+      if (is.null(weight)) {
+        mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE)")))
+      }
+
+      if (!is.null(weight)) {
+        mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, w = {weight}, std.error = TRUE)")))
+      }
+
     }
 
     if (test_name == "chisq.test"){
@@ -252,6 +260,7 @@ cont_des <- function(data,
                      comb_sym = c(" (", ")"),
                      round_cont = 2,
                      p_value = TRUE,
+                     weight = NULL,
                      test_name = "t.test",
                      ...){
   class(data) <- class(data)[which(!class(data) %in% c("rowwise_df", "grouped_df"))]
@@ -323,7 +332,13 @@ cont_des <- function(data,
     }
 
     if(test_name %in% "smd"){
-      mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE)")))
+      if (is.null(weight)){
+        mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, std.error = TRUE)")))
+      }
+
+      if (!is.null(weight)){
+        mdat_test <- eval(parse(text = str_glue("data %$% smd(x = {row_var}, g = {col_var}, w = {weight}, std.error = TRUE)")))
+      }
     }
 
     if(test_name == "aov") {
